@@ -1,10 +1,3 @@
-# cd buildscripts
-# create tmp
-# obtain nuget
-# install fake
-# pass params to fake script
-# return exit code fake
-
 cd buildtools
 
 if [ ! -d tmp ]; then

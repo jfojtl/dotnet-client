@@ -25,12 +25,12 @@ namespace Infinispan.HotRod.Tests
                 if (wm.WrappedBytes != null)
                 {
                     WrappedMessage wmr = WrappedMessage.Parser.ParseFrom(wm.WrappedBytes);
-                    if (wmr.WrappedMessageBytes != null)
+                    if (wmr.WrappedMessage_ != null)
                     {
                         System.Reflection.PropertyInfo pi = typeof(T).GetProperty("Parser");
 
                         MessageParser<T> p = (MessageParser<T>)pi.GetValue(null);
-                        T u = p.ParseFrom(wmr.WrappedMessageBytes);
+                        T u = p.ParseFrom(wmr.WrappedMessage_);
                         result.Add(u);
                     }
                 }
@@ -98,11 +98,8 @@ namespace Infinispan.HotRod.Tests
                         case WrappedMessage.ScalarOrMessageOneofCase.WrappedSInt64:
                             projection[j] = wm.WrappedSInt64;
                             break;
-                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedDescriptorFullName:
-                            projection[j] = wm.WrappedDescriptorFullName;
-                            break;
-                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedMessageBytes:
-                            projection[j] = wm.WrappedMessageBytes;
+                        case WrappedMessage.ScalarOrMessageOneofCase.WrappedMessage_:
+                            projection[j] = wm.WrappedMessage_;
                             break;
                     }
                 }

@@ -66,7 +66,7 @@ namespace Infinispan.HotRod.Tests
             
             cos.Flush();
             WrappedMessage wm = new WrappedMessage();
-            wm.WrappedMessageBytes = ByteString.CopyFrom(bytes);
+            wm.WrappedMessage_ = ByteString.CopyFrom(bytes);
             wm.WrappedDescriptorId = descriptorId;
 
             byte[] msgBytes = new byte[wm.CalculateSize()];

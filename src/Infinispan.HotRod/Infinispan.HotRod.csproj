@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <PackageId>Infinispan.HotRod</PackageId>
-    <PackageVersion>8.2.0-Alpha2</PackageVersion>
+    <PackageVersion>8.2.0-RC2</PackageVersion>
     <Authors>infinispan.org</Authors>
     <Description>.NET binding of C++ HotRod client for connecting to infinispan</Description>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
@@ -14,11 +14,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.4.1" />
-    <PackageReference Include="Infinispan.HotRod.Cpp-Client" Version="8.2.0-Alpha1" />
+    <PackageReference Include="Infinispan.HotRod.Cpp-Client" Version="8.2.0-Alpha1-multi" />
     <PackageReference Include="NLog" Version="5.0.0-beta11">
       <NoWarn>NU1701</NoWarn>
     </PackageReference>
+    <PackageReference Include="Google.Protobuf" Version="3.5.0" />
   </ItemGroup>
 
 </Project>

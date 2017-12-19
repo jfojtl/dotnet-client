@@ -42,7 +42,8 @@ Target "GenerateSwig" (fun _ ->
     trace "running swig generation"
     let cppClientLocation = downloadCppClientIfNonexist cppClientVersion
     let swigToolPath = downloadSwigToolsIfNonexist swigVersion
-    let cppClientInclude = @"../buildtools" @@ cppClientLocation @@ "include" // remember, it's gonna run from ../swig folder
+    copyIncludeForSwig cppClientLocation "../swig/native_client/include"
+    let cppClientInclude = @"native_client/include" // remember, it's gonna run from ../swig folder
     let sourceDir = "../swig"
     let _namespace = "Infinispan.HotRod.SWIGGen"
     generateCSharpFilesFromSwigTemplates swigToolPath cppClientInclude sourceDir _namespace generateDir
@@ -52,8 +53,8 @@ Target "GenerateSwig" (fun _ ->
 Target "BuildSwigWraper" (fun _ ->
     trace "running swig wraper build"
     let cppClientLocation = downloadCppClientIfNonexist cppClientVersion
-    directoryCopy (cppClientLocation @@ "include") "../swig/include" true
-    directoryCopy (cppClientLocation @@ "lib") "../swig/native_client/lib" true
+    copyIncludeForSwig cppClientLocation "../swig/native_client/include"
+    copyLibForSwig cppClientLocation "../swig/native_client/lib"
     buildSwig ()
 )
 

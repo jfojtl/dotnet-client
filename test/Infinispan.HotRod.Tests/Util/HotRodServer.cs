@@ -69,14 +69,14 @@ namespace Infinispan.HotRod.Tests.Util
                 StartInfo =
                 {
                     FileName = buildStartCommand(jbossHome),
-                    Arguments = "-c " + configurationFile
+                    Arguments = "-c " + configurationFile,
+                    UseShellExecute = false
                 }
             };
             if (arguments.Length != 0)
             {
                 hrServer.StartInfo.Arguments = hrServer.StartInfo.Arguments + " " + arguments;
             }
-            hrServer.StartInfo.UseShellExecute = true;
             hrServer.StartInfo.EnvironmentVariables["NOPAUSE"] = "YES";
             if (PlatformUtils.isUnix())
             {
@@ -97,7 +97,18 @@ namespace Infinispan.HotRod.Tests.Util
             Console.WriteLine("Shutting down Infinispan Server ...");
             if (hrServer != null)
             {
-                hrServer.Kill();
+                if (PlatformUtils.isUnix()) {
+                /* Kill the process and subprocesses. */
+                    Process killProcess = new Process();
+                    killProcess.StartInfo.FileName = "bash";
+                    killProcess.StartInfo.Arguments = String.Format("-c \"ps h --format pid --pid {0} --ppid {0} | xargs kill\"", hrServer.Id);
+                    killProcess.Start();
+                    killProcess.WaitForExit();
+                }
+                else
+                {
+                    hrServer.Kill();
+                }
                 Assert.IsTrue(IsStopped(),
                               "A process is still listening on the ip/port. Kill failed?");
             }

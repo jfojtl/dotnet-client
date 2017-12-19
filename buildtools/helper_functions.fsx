@@ -104,16 +104,8 @@ let unzipFile file where =
 ///
 let unzipRpmFile file where folder =
     ExecProcess (fun p ->
-        p.FileName <- "rpm2archive"
-        p.Arguments <- file
-        p.WorkingDirectory <- where) (TimeSpan.FromMinutes 5.0) |> ignore
-    ExecProcess (fun p ->
-        p.FileName <- "mkdir"
-        p.Arguments <- folder
-        p.WorkingDirectory <- where) (TimeSpan.FromMinutes 5.0)  |> ignore
-    ExecProcess (fun p ->
-        p.FileName <- "tar"
-        p.Arguments <- sprintf "xvf %s.%s -C %s" file "tgz" folder
+        p.FileName <- "bash"
+        p.Arguments <- sprintf "-c \" mkdir -p %s && cd %s && rpm2cpio ../%s | cpio -idmv ; cd -\"" folder folder file
         p.WorkingDirectory <- where) (TimeSpan.FromMinutes 5.0) |> ignore
     
 
@@ -131,28 +123,61 @@ let downloadCppClientIfNonexist cppClientVersion =
     // FAKE uses ICSharpLibZip which is capable of extracting zips, but cpp-client.zip is corrupted for it
     // java is known to create invalid headers. 7zip can extract it without checking it
     // more info at http://community.sharpdevelop.net/forums/t/9055.aspx
-    let cppClientDirectory = sprintf "tmp/infinispan-hotrod-cpp-%s-WIN-x86_64" cppClientVersion
-    if not (Directory.Exists cppClientDirectory) then
-        let cppClientUrl = sprintf "http://downloads.jboss.org/infinispan/HotRodCPP/%s/infinispan-hotrod-cpp-%s-WIN-x86_64.zip" cppClientVersion cppClientVersion;
-        trace (sprintf "downloading cpp-client version %s" cppClientVersion)
-        downloadArtifact cppClientUrl "tmp/cpp-client.zip"
-        trace "client downloaded, unziping"
-        if unzipFile "cpp-client.zip" "tmp" <> 0 then failwith "cannot unzip cpp-client.zip"
-        trace "client unziped"
+    if isWindows then
+        let cppClientDirectory = sprintf "tmp/infinispan-hotrod-cpp-%s-WIN-x86_64" cppClientVersion
+        if not (Directory.Exists cppClientDirectory) then
+            let cppClientUrl = sprintf "http://downloads.jboss.org/infinispan/HotRodCPP/%s/infinispan-hotrod-cpp-%s-WIN-x86_64.zip" cppClientVersion cppClientVersion;
+            trace (sprintf "downloading cpp-client version %s" cppClientVersion)
+            downloadArtifact cppClientUrl "tmp/cpp-client.zip"
+            trace "client downloaded, unziping"
+            if unzipFile "cpp-client.zip" "tmp" <> 0 then failwith "cannot unzip cpp-client.zip"
+            trace "client unziped"
+        else
+            trace "cpp client already downloaded, skipping"
+        cppClientDirectory
     else
-        trace "cpp client already downloaded, skipping"
-    if isLinux then
-        let cppLinuxClientDirectory = sprintf "tmp/cpp-linux-client"
+        let cppLinuxClientDirectory = sprintf "infinispan-hotrod-cpp-%s-RHEL-x86_64" cppClientVersion
         if not (Directory.Exists cppLinuxClientDirectory) then
             let cppClientUrl = sprintf "http://downloads.jboss.org/infinispan/HotRodCPP/%s/infinispan-hotrod-cpp-%s-RHEL-x86_64.rpm" cppClientVersion cppClientVersion;
             trace (sprintf "downloading cpp-linux-client version %s" cppClientVersion)
             downloadArtifact cppClientUrl "tmp/cpp-linux-client.rpm"
             trace "client downloaded, unziping"
-            unzipRpmFile "cpp-linux-client.rpm" "tmp" "cpp-linux-client"
+            unzipRpmFile "cpp-linux-client.rpm" "tmp" cppLinuxClientDirectory
             trace "client unziped"
         else
             trace "cpp linux client already downloaded, skipping"
-    cppClientDirectory
+        "tmp/" @@ cppLinuxClientDirectory 
+
+
+///**Description**
+/// Copy the .h include files from the right place
+///**Parameters**
+///  * `cppClientLocation` - root of cpp client location
+///
+///**Exceptions**
+///
+let copyIncludeForSwig cppClientLocation swigTargetDir =
+    let sourceDir = 
+        if isWindows then
+            (cppClientLocation @@ "include")
+        else
+            (cppClientLocation @@ "usr/include")
+    directoryCopy sourceDir swigTargetDir true
+
+///**Description**
+/// Copy the libs files from the right place
+///**Parameters**
+///  * `cppClientLocation` - root of cpp client location
+///
+///**Exceptions**
+///
+let copyLibForSwig cppClientLocation swigTargetDir =
+    let sourceDir = 
+        if isWindows then
+            (cppClientLocation @@ "lib")
+        else
+            (cppClientLocation @@ "usr/lib")
+    directoryCopy sourceDir swigTargetDir true
 
 ///**Description**
 /// Downloads Infinispan server from internet
@@ -279,11 +304,8 @@ let buildSwig () =
                                                 "Platform", "x64"
                                               ]}) "../swig/hotrod_wrap.vcxproj"
     else
-        ExecProcess (fun p ->
+        let cppResult = ExecProcess (fun p ->
             p.FileName <- "g++"
-            p.Arguments <- "-std=c++11 -I include/ hotrodcs_wrap.cxx -shared -fPIC -o build/linux-shared/hotrodcs_wrap.so"
-            p.WorkingDirectory <- "../swig") (TimeSpan.FromMinutes 5.0) |> ignore
-        ExecProcess (fun p ->
-            p.FileName <- "g++"
-            p.Arguments <- "-std=c++11 -I include/ hotrodcs_wrap.cxx -c -o build/linux/hotrodcs_wrap.so"
-            p.WorkingDirectory <- "../swig") (TimeSpan.FromMinutes 5.0) |> ignore
+            p.Arguments <- sprintf "hotrodcs_wrap.cxx  -std=c++11 -shared -DHR_PROTO_EXPORT=\"\" -fPIC -Iinclude -Inative_client/include -o native_client/lib/hotrod_wrap.so -Lnative_client/lib -Wl,-rpath,native_client/lib -lhotrod"
+            p.WorkingDirectory <- "../swig") (TimeSpan.FromMinutes 5.0)
+        if cppResult <> 0 then failwith "could not process swig files"
